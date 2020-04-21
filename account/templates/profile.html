@@ -8,8 +8,6 @@
     <p>First name: {{ user.first_name }}</p>
     <p>Last name: {{ user.last_name }}</p>
     <p>Email: {{ user.email }}</p>
-    {% if user.userprofile.image %}
-    <img src="{{ user.userprofile.image.url }}" width="240">
     {% endif %}
 </div>
 

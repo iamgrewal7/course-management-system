@@ -25,7 +25,10 @@ SECRET_KEY = 'e6vypn6c$qr@_bion$x3^l-*b89x8-(1so$^f0tk3evgfx2icg'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    '10.0.0.124',
+    '*'
+]
 
 
 # Application definition
@@ -128,3 +131,4 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 LOGIN_REDIRECT_URL = 'frontend:home'
+LOGOUT_REDIRECT_URL = 'frontend:home'

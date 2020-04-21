@@ -1,19 +1,32 @@
 import React, { Component } from "react";
-import { render } from "react-dom";
+import {
+  Accordion,
+  Icon,
+  Segment,
+  Card,
+  Header,
+  Button
+} from "semantic-ui-react";
+import { getCsrfToken } from "../utils/crsftoken";
 
 export default class CourseInfo extends Component {
   constructor(props) {
     super(props);
     this.state = {
       data: [],
+      activeIndex: -1,
       loaded: false,
       placeholder: "Loading"
     };
   }
 
   componentDidMount() {
-    fetch('http://localhost:8000/api/course-info')
-      .then(response => {
+    this.fetchInitialData();
+  }
+
+  fetchInitialData = () => {
+    fetch("http://localhost:8000/api/course-info/")
+      .then((response) => {
         if (response.status > 400) {
           return this.setState(() => {
             return { placeholder: "Something went wrong!" };
@@ -21,7 +34,7 @@ export default class CourseInfo extends Component {
         }
         return response.json();
       })
-      .then(data => {
+      .then((data) => {
         this.setState(() => {
           return {
             data: data.Result,
@@ -29,56 +42,92 @@ export default class CourseInfo extends Component {
           };
         });
       });
-  }
+  };
 
-  getCourse = offering => (
+  dropCourse = async (courseID) => {
+    const response = await fetch("http://localhost:8000/api/drop-course/", {
+      method: "POST",
+      headers: {
+        "X-CSRFToken": await getCsrfToken()
+      },
+      body: JSON.stringify({ course_id: courseID })
+    });
+    this.fetchInitialData();
+  };
+
+  handleClick = (e, titleProps) => {
+    const { index } = titleProps;
+    const { activeIndex } = this.state;
+    const newIndex = activeIndex === index ? -1 : index;
+
+    this.setState({ activeIndex: newIndex });
+  };
+
+  getCourse = (offering) => (
+    <Card
+      header={offering.course.name}
+      meta={"Section -> " + offering.section}
+    />
+  );
+
+  getInstructor = (instructors) => (
     <div>
-      <p>Course Name: {offering.course.name} </p>
-      <p>Course Number: {offering.course.number} </p>
-      <p>Course Credit: {offering.course.credit} </p>
-    </div>
-  )
-
-  getInstructor = instructors => (
-    instructors.map((instructor, idx )=> (
-      <div>
-        <div>Instructor {idx+1}</div>
-        <p>Name: {instructor.name}</p>
-        <p>Email: {instructor.email}</p>
-        <p>Office Address: {instructor.office}</p>
-      </div>
-    ))
-  )
-
-  getTa = tas => (
-    <div>
-      <h3>TAs: </h3>
-      {tas.map((ta, idx) => (
-        <div>
-          <div>TA {idx+1}</div>
-          <p>Name: {ta.name}</p>
-          <p>Email: {ta.email}</p>
-        </div>
+      <Header as="h3">Instructors</Header>
+      {instructors.map((instructor, idx) => (
+        <Card
+          key={instructor.id}
+          header={instructor.name}
+          meta={"Email -> " + instructor.email}
+          description={"Office -> " + instructor.office}
+        />
       ))}
     </div>
-  )
+  );
+
+  getTa = (tas) => (
+    <div>
+      <Header as="h3">TAs</Header>
+      {tas.map((ta, idx) => (
+        <Card key={ta.id} header={ta.name} meta={"Email -> " + ta.email} />
+      ))}
+    </div>
+  );
 
   render() {
+    const { activeIndex } = this.state;
     return (
-      <ul>
-        {this.state.data.map(offering => {
+      <div style={{ padding: "10px" }}>
+        {this.state.data.map((offering, idx) => {
           return (
-            <div>
-              {this.getCourse(offering)}
-              <p>Section: {offering.section} </p>
-              <h3>Instructors: </h3>
-              {this.getInstructor(offering.teaching_team.instructors)}
-              {offering.teaching_team.tas.length ? this.getTa(offering.teaching_team.tas): ''}
-              <br/>
-            </div>
-          )
+            <Segment key={offering.id}>
+              <Accordion>
+                <Accordion.Title
+                  active={activeIndex === 0}
+                  index={idx}
+                  onClick={this.handleClick}
+                >
+                  <Icon name="dropdown" />
+                  {offering.course.number}
+                </Accordion.Title>
+                <Accordion.Content active={activeIndex === idx}>
+                  {this.getCourse(offering)}
+                  {this.getInstructor(offering.teaching_team.instructors)}
+                  <br />
+                  {offering.teaching_team.tas.length
+                    ? this.getTa(offering.teaching_team.tas)
+                    : ""}
+                </Accordion.Content>
+                <Button
+                  color="red"
+                  onClick={() => this.dropCourse(offering.course.id)}
+                >
+                  Drop This Course
+                </Button>
+              </Accordion>
+            </Segment>
+          );
         })}
-      </ul>
+      </div>
     );
   }
 }

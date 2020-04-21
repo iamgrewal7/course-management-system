@@ -1,5 +1,5 @@
 import React, { Component } from "react";
-import { Accordion, Icon, Segment } from "semantic-ui-react";
+import { Accordion, Icon, Segment, Card } from "semantic-ui-react";
 
 export default class Assignment extends Component {
   constructor(props) {
@@ -13,7 +13,7 @@ export default class Assignment extends Component {
   }
 
   componentDidMount() {
-    fetch("http://localhost:8000/api/forum/")
+    fetch("http://localhost:8000/api/assignment/get/")
       .then((response) => {
         if (response.status > 400) {
           return this.setState(() => {
@@ -32,6 +32,18 @@ export default class Assignment extends Component {
       });
   }
 
+  getAssignments = (assignments) => (
+    <div>
+      {assignments.map((assignment) => (
+        <Card
+          key={assignment.id}
+          header={assignment.name}
+          meta={"Grade -> " + assignment.grade}
+        />
+      ))}
+    </div>
+  );
+
   handleClick = (e, titleProps) => {
     const { index } = titleProps;
     const { activeIndex } = this.state;
@@ -48,17 +60,17 @@ export default class Assignment extends Component {
           <Segment key={data.id}>
             <Accordion>
               <Accordion.Title
-                active={activeIndex === idx}
+                active={activeIndex === 0}
                 index={idx}
                 onClick={this.handleClick}
               >
                 <Icon name="dropdown" />
                 {data.course}
               </Accordion.Title>
-              {/* <Accordion.Content active={activeIndex === idx}>
+              <Accordion.Content active={activeIndex === idx}>
                 {this.getAssignments(data.assignments)}
                 <br />
-              </Accordion.Content> */}
+              </Accordion.Content>
             </Accordion>
           </Segment>
         ))}
