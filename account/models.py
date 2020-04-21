@@ -84,11 +84,16 @@ class Enrollments(models.Model):
 
 
 class Forum(models.Model):
-    offering = models.ForeignKey(Offering, on_delete=models.CASCADE)
+    offering = models.OneToOneField(Offering, on_delete=models.CASCADE)
 
 
 class Post(models.Model):
     forum = models.ForeignKey(Forum, on_delete=models.CASCADE)
     auth_user = models.ForeignKey(User, on_delete=models.CASCADE)
     text = models.CharField(max_length=100)
-    comment = models.ForeignKey('self', null=True, on_delete=models.CASCADE)
+
+
+class Comment(models.Model):
+    post = models.ForeignKey(Post, on_delete=models.CASCADE)
+    auth_user = models.ForeignKey(User, on_delete=models.CASCADE)
+    text = models.CharField(max_length=100)

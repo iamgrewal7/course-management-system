@@ -19,17 +19,16 @@ class Command(BaseCommand):
                     offering.section.save()
                     forum = Forum.objects.create(offering=offering)
 
-                    if row[4]:
-                        comment = Post.objects.create(
-                            forum=forum,
-                            auth_user=User.objects.get(email=row[5]),
-                            text=row[4]
-                        )
-                        Post.objects.create(
+                    if row[2]:
+                        post = Post.objects.create(
                             forum=forum,
                             auth_user=User.objects.get(email=row[3]),
                             text=row[2],
-                            comment=comment
                         )
 
-
+                        if row[4]:
+                            Comment.objects.create(
+                                auth_user=User.objects.get(email=row[5]),
+                                text=row[4],
+                                post=post
+                            )

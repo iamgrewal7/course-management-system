@@ -66,8 +66,14 @@ class ForumAdmin(admin.ModelAdmin):
 
 class PostAdmin(admin.ModelAdmin):
     model = Post
-    list_display = ['forum', 'comment']
-    raw_id_fields = ['forum', 'comment', 'auth_user']
+    list_display = ['text']
+    raw_id_fields = ['forum', 'auth_user']
+
+
+class CommentAdmin(admin.ModelAdmin):
+    model = Post
+    list_display = ['text']
+    raw_id_fields = ['auth_user', 'post']
 
 
 admin.site.register(Course, CourseAdmin)
@@ -83,3 +89,4 @@ admin.site.register(Student, StudentAdmin)
 admin.site.register(TeachingTeam, TeachingTeamAdmin)
 admin.site.register(Forum, ForumAdmin)
 admin.site.register(Post, PostAdmin)
+admin.site.register(Comment, CommentAdmin)

@@ -21,7 +21,7 @@ urlpatterns = [
     path('login/', LoginView.as_view(template_name='login.html'), name='login'),
     path('logout/', LogoutView.as_view(), name='logout'),
     path('admin/', admin.site.urls),
-    path('account/', include(('account.urls', 'account'), namespace='account')),
+    path('api/', include(('account.urls', 'account'), namespace='account')),
     path('', include(('frontend.urls', 'frontend'), namespace='frontend'))
 
 ]
