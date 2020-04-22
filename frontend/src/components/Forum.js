@@ -1,5 +1,7 @@
 import React, { Component } from "react";
-import { Accordion, Icon, Segment } from "semantic-ui-react";
+import { Accordion, Icon, Segment, Button, Input } from "semantic-ui-react";
+import Post from "./Post";
+import { getCsrfToken } from "../utils/crsftoken";
 
 export default class Assignment extends Component {
   constructor(props) {
@@ -7,12 +9,18 @@ export default class Assignment extends Component {
     this.state = {
       data: [],
       loaded: false,
+      postText: "",
+      commentText: "",
       activeIndex: -1,
       placeholder: "Loading"
     };
   }
 
   componentDidMount() {
+    this.fetchInitialData();
+  }
+
+  fetchInitialData = () => {
     fetch("http://localhost:8000/api/forum/")
       .then((response) => {
         if (response.status > 400) {
@@ -30,7 +38,7 @@ export default class Assignment extends Component {
           };
         });
       });
-  }
+  };
 
   handleClick = (e, titleProps) => {
     const { index } = titleProps;
@@ -38,6 +46,41 @@ export default class Assignment extends Component {
     const newIndex = activeIndex === index ? -1 : index;
 
     this.setState({ activeIndex: newIndex });
+  };
+
+  handleAddPost = async (forumID) => {
+    const response = await fetch("http://localhost:8000/api/post/create/", {
+      method: "POST",
+      headers: {
+        "X-CSRFToken": await getCsrfToken()
+      },
+      body: JSON.stringify({ forum_id: forumID, text: this.state.postText })
+    });
+    const result = await response.json();
+    this.fetchInitialData();
+  };
+
+  handleAddComment = async (postID) => {
+    const response = await fetch("http://localhost:8000/api/comment/add/", {
+      method: "POST",
+      headers: {
+        "X-CSRFToken": await getCsrfToken()
+      },
+      body: JSON.stringify({ post_id: postID, text: this.state.commentText })
+    });
+    const result = await response.json();
+    console.log(result);
+    this.fetchInitialData();
+  };
+
+  handlePostChange = (e) => {
+    this.setState({ postText: e.target.value });
+    e.preventDefault();
+  };
+
+  handleCommentChange = (e) => {
+    this.setState({ commentText: e.target.value });
+    e.preventDefault();
   };
 
   render() {
@@ -55,10 +98,28 @@ export default class Assignment extends Component {
                 <Icon name="dropdown" />
                 {data.course}
               </Accordion.Title>
-              {/* <Accordion.Content active={activeIndex === idx}>
-                {this.getAssignments(data.assignments)}
-                <br />
-              </Accordion.Content> */}
+              <Accordion.Content active={activeIndex === idx}>
+                {data.posts.map((post) => (
+                  <Post
+                    key={post.id}
+                    post={post}
+                    handleAddComment={this.handleAddComment}
+                    handleCommentChange={this.handleCommentChange}
+                  />
+                ))}
+              </Accordion.Content>
+              <Input
+                placeholder="Add New Post..."
+                name="post"
+                onChange={this.handlePostChange}
+              />
+              <Button
+                primary
+                style={{ float: "right" }}
+                onClick={() => this.handleAddPost(data.id)}
+              >
+                Add Post
+              </Button>
             </Accordion>
           </Segment>
         ))}

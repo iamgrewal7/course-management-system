@@ -52,6 +52,8 @@ export default class CourseInfo extends Component {
       },
       body: JSON.stringify({ course_id: courseID })
     });
+    const result = await response.json();
+    alert(result.Result);
     this.fetchInitialData();
   };
 

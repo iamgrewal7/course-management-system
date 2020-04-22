@@ -109,7 +109,7 @@ def get_forum(request):
 @login_required(login_url='/login/')
 def create_post(request):
     try:
-        data = json.loads(request.body())
+        data = json.loads(request.body)
         Post.objects.create(
             text=data['text'],
             forum_id=data['forum_id'],
@@ -202,7 +202,7 @@ def drop_course(request):
             offering__section__course_id=data['course_id'],
             students__auth_user=request.user
         )
-        if enrollment.offering.section.drop_deadline > timezone.now():
+        if enrollment.offering.section.drop_deadline < timezone.now():
             raise PermissionError
 
         enrollment.students.remove(Student.objects.get(auth_user=request.user))
@@ -217,8 +217,9 @@ def drop_course(request):
             'Result': 'Success'
         })
     except Exception as error:
+        print(error)
         return JsonResponse({
-            'Result': str(error) if error else 'Failure'
+            'Result': 'Cannot Drop Course. Deadline Passed'
         })
 
 
