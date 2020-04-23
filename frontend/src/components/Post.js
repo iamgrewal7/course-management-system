@@ -19,8 +19,12 @@ const Post = ({ post, handleAddComment, handleCommentChange }) => (
       <div key={comment.id}>
         <p>Text: {comment.text}</p>
         <p>Author: {comment.by}</p>
+        <br />
       </div>
     ))}
+    <hr />
+    <br />
+    <br />
   </div>
 );
 

@@ -109,7 +109,7 @@ export default class CourseInfo extends Component {
                   onClick={this.handleClick}
                 >
                   <Icon name="dropdown" />
-                  {offering.course.number}
+                  {offering.course.number + " Section: " + offering.section}
                 </Accordion.Title>
                 <Accordion.Content active={activeIndex === idx}>
                   {this.getCourse(offering)}
@@ -119,12 +119,11 @@ export default class CourseInfo extends Component {
                     ? this.getTa(offering.teaching_team.tas)
                     : ""}
                 </Accordion.Content>
-                <Button
-                  color="red"
-                  onClick={() => this.dropCourse(offering.course.id)}
-                >
-                  Drop This Course
-                </Button>
+                <DropCourseButton
+                  dropCourse={this.dropCourse}
+                  role={offering.role}
+                  courseId={offering.course.id}
+                />
               </Accordion>
             </Segment>
           );
@@ -133,3 +132,14 @@ export default class CourseInfo extends Component {
     );
   }
 }
+
+const DropCourseButton = ({ role, dropCourse, courseId }) => {
+  if (role.is_student) {
+    return (
+      <Button color="red" onClick={() => dropCourse(courseId)}>
+        Drop This Course
+      </Button>
+    );
+  }
+  return null;
+};

@@ -1,11 +1,11 @@
 from django.http import JsonResponse
-from django.db.models import Prefetch
+from django.db.models import Prefetch, Q
 from django.contrib import messages
 from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth.forms import PasswordChangeForm
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
-from .models import Enrollments, Post, Comment, Assignment, Student, Grade
+from .models import Enrollments, Post, Comment, Assignment, Student, Grade, Offering
 from django.middleware.csrf import get_token
 from django.utils import timezone
 import json
@@ -13,7 +13,7 @@ import json
 
 @login_required(login_url='/login/')
 def profile(request):
-    person = request.user.student if getattr(request.user, 'student') else request.user.facultymember
+    person = request.user.student if getattr(request.user, 'student', None) else request.user.facultymember
     return JsonResponse({
         'Result': {
             'firstName': request.user.first_name,
@@ -40,8 +40,10 @@ def course_info(request):
             to_attr='tas'
         )
     ).filter(
-        students__auth_user=request.user
-    )
+        Q(students__auth_user=request.user) |
+        Q(offering__teaching_team__instructor__auth_user=request.user)
+    ).distinct()
+
     return JsonResponse({
         'Result': [{
             'id': enrollment.offering.id,
@@ -51,6 +53,11 @@ def course_info(request):
                 'number': enrollment.offering.section.course.number,
                 'name': enrollment.offering.section.course.name,
                 'credit': enrollment.offering.section.course.credit,
+            },
+            'role': {
+                'is_ta': enrollment.offering.teaching_team.ta.filter(auth_user=request.user).exists(),
+                'is_student': enrollment.students.filter(auth_user=request.user).exists(),
+                'is_instructor': enrollment.offering.teaching_team.instructor.filter(auth_user=request.user).exists()
             },
             'teaching_team': {
                 'instructors': [{
@@ -86,12 +93,21 @@ def get_forum(request):
             ),
             to_attr='posts'
         )
-    ).filter(students__auth_user=request.user)
+    ).filter(
+        Q(students__auth_user=request.user) | 
+        Q(offering__teaching_team__instructor__auth_user=request.user)
+    ).distinct()
 
     return JsonResponse({
         'Result': [{
             'course': enrollment.offering.section.course.number,
+            'section': enrollment.offering.section.number,
             'id': enrollment.offering.forum.id,
+            'role': {
+                'is_ta': enrollment.offering.teaching_team.ta.filter(auth_user=request.user).exists(),
+                'is_student': enrollment.students.filter(auth_user=request.user).exists(),
+                'is_instructor': enrollment.offering.teaching_team.instructor.filter(auth_user=request.user).exists()
+            },
             'posts': [{
                 'id': post.id,
                 'text': post.text,
@@ -149,10 +165,16 @@ def create_assignment(request):
         is_ta = lambda user: getattr(user, 'student', None) and user.student.is_ta
         is_faculty = lambda user: getattr(user, 'facultymember', None)
         if is_ta or is_faculty:
-            Assignment.objects.create(
-                number=data['number'],
+            assignment = Assignment.objects.create(
                 name=data['name']
             )
+            offering = Offering.objects.get(id=data['offering_id'])
+            offering.assignment.add(assignment)
+            offering.save()
+            return JsonResponse({
+                'Result': 'Success'
+            })
+
         else:
             raise PermissionError
     except Exception as error:
@@ -173,18 +195,31 @@ def get_assignments(request):
             ),
             'offering__assignment__grade_set',
         ).filter(
-            students__auth_user=request.user,
+            Q(students__auth_user=request.user) |
+            Q(offering__teaching_team__instructor__auth_user=request.user),
             offering__assignment__isnull=False
+        ).distinct()
+        get_grade = lambda _id: (
+            Grade.objects.filter(assignment_id=_id, student__auth_user=request.user).first().grade
+            if Grade.objects.filter(assignment_id=_id, student__auth_user=request.user).exists()
+            else "N/A"
         )
         return JsonResponse({
             'Result': [{
                 'id': enrollment.id,
+                'offering_id': enrollment.offering.id,
                 'course': enrollment.offering.section.course.number,
+                'section': enrollment.offering.section.number,
+                'role': {
+                    'is_ta': enrollment.offering.teaching_team.ta.filter(auth_user=request.user).exists(),
+                    'is_student': enrollment.students.filter(auth_user=request.user).exists(),
+                    'is_instructor': enrollment.offering.teaching_team.instructor.filter(auth_user=request.user).exists()
+                },
                 'assignments': [{
                     'id': assignment.id,
                     'name': assignment.name,
                     'number': assignment.number,
-                    'grade': assignment.grade_set.all()[0].grade
+                    'grade': get_grade(assignment.id)
                 } for assignment in enrollment.offering.assignments]
             } for enrollment in enrollments]
         })
@@ -233,8 +268,11 @@ def submit_scores(request):
             Grade.objects.create(
                 assignment_id=data['assignment_id'],
                 student_id=data['student_id'],
-                grade=data['grade']
+                grade=int(data['grade'])
             )
+            return JsonResponse({
+                'Result': 'Success'
+             })
         else:
             raise PermissionError
     except Exception as error:
@@ -268,3 +306,66 @@ def csrf_token(request):
     })
 
 
+@login_required(login_url='/login/')
+def get_status(request):
+    is_faculty = True
+    if hasattr(request.user, 'student'):
+        is_faculty = request.user.student.is_ta
+    return JsonResponse({
+        'Result': is_faculty
+    })
+
+
+@login_required(login_url='/login/')
+def get_class(request):
+    enrollments = Enrollments.objects.select_related(
+            'offering'
+        ).prefetch_related(
+            Prefetch(
+                'offering__assignment',
+                to_attr='assignments'
+            ),
+            'students'
+        ).filter(
+            Q(offering__teaching_team__ta__auth_user=request.user) |
+            Q(offering__teaching_team__instructor__auth_user=request.user),
+        ).distinct()
+    
+    get_grade = lambda _id, user_id: (
+            Grade.objects.filter(assignment_id=_id, student__auth_user_id=user_id).first().grade
+            if Grade.objects.filter(assignment_id=_id, student__auth_user_id=user_id).exists()
+            else "N/A"
+        )
+    
+    return JsonResponse({
+            'Result': [{
+                'id': enrollment.id,
+                'offering_id': enrollment.offering.id,
+                'course': {
+                    'number': enrollment.offering.section.course.number,
+                    'name': enrollment.offering.section.course.name,
+                },
+                'section': enrollment.offering.section.number,
+                'students': [{
+                    'id': student.id,
+                    'first_name': student.auth_user.first_name,
+                    'last_name': student.auth_user.last_name,
+                    'email': student.auth_user.email,
+                    'assignments': [{
+                        'id': assignment.id,
+                        'grade': get_grade(assignment.id, student.auth_user_id)
+                    } for assignment in sorted(enrollment.offering.assignments, key=lambda x: x.id)]
+                } for student in enrollment.students.all()],
+                'role': {
+                    'is_ta': enrollment.offering.teaching_team.ta.filter(auth_user=request.user).exists(),
+                    'is_student': enrollment.students.filter(auth_user=request.user).exists(),
+                    'is_instructor': enrollment.offering.teaching_team.instructor.filter(auth_user=request.user).exists()
+                },
+                'assignments': [{
+                    'id': assignment.id,
+                    'name': assignment.name,
+                    'number': assignment.number,
+                } for assignment in sorted(enrollment.offering.assignments, key=lambda x: x.id)]
+            } for enrollment in enrollments]
+        })
+    

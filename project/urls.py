@@ -25,5 +25,5 @@ urlpatterns = [
     path('', include(('frontend.urls', 'frontend'), namespace='frontend')),
     path('login/', LoginView.as_view(template_name='login.html'), name='password_change_done'),
     path('change-password/', PasswordChangeView.as_view()),
-    re_path(r'^.*$', LoginView.as_view(template_name='login.html', redirect_authenticated_user=True))
+    # re_path(r'^.*$', LoginView.as_view(template_name='login.html', redirect_authenticated_user=True))
 ]

@@ -96,7 +96,7 @@ export default class Assignment extends Component {
                 onClick={this.handleClick}
               >
                 <Icon name="dropdown" />
-                {data.course}
+                {data.course + " Section -> " + data.section}
               </Accordion.Title>
               <Accordion.Content active={activeIndex === idx}>
                 {data.posts.map((post) => (

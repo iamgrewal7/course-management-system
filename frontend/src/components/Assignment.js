@@ -1,5 +1,13 @@
 import React, { Component } from "react";
-import { Accordion, Icon, Segment, Card } from "semantic-ui-react";
+import {
+  Accordion,
+  Icon,
+  Segment,
+  Card,
+  Button,
+  Input
+} from "semantic-ui-react";
+import { getCsrfToken } from "../utils/crsftoken";
 
 export default class Assignment extends Component {
   constructor(props) {
@@ -8,37 +16,34 @@ export default class Assignment extends Component {
       data: [],
       loaded: false,
       activeIndex: -1,
+      assignmentText: "",
+      token: "",
       placeholder: "Loading"
     };
   }
 
   componentDidMount() {
-    fetch("http://localhost:8000/api/assignment/get/")
-      .then((response) => {
-        if (response.status > 400) {
-          return this.setState(() => {
-            return { placeholder: "Something went wrong!" };
-          });
-        }
-        return response.json();
-      })
-      .then((data) => {
-        this.setState(() => {
-          return {
-            data: data.Result,
-            loaded: true
-          };
-        });
-      });
+    this.fetchInitialData();
   }
 
-  getAssignments = (assignments) => (
+  fetchInitialData = async () => {
+    const response = await fetch("http://localhost:8000/api/assignment/get/", {
+      method: "GET"
+    });
+    const data = await response.json();
+    this.setState({
+      data: data.Result,
+      loaded: true
+    });
+  };
+
+  getAssignments = (assignments, role) => (
     <div>
       {assignments.map((assignment) => (
         <Card
           key={assignment.id}
           header={assignment.name}
-          meta={"Grade -> " + assignment.grade}
+          meta={role.is_student ? " Grade -> " + assignment.grade : ""}
         />
       ))}
     </div>
@@ -52,8 +57,32 @@ export default class Assignment extends Component {
     this.setState({ activeIndex: newIndex });
   };
 
+  handleAddAssignment = async (offeringId) => {
+    const response = await fetch(
+      "http://localhost:8000/api/assignment/create/",
+      {
+        method: "POST",
+        headers: {
+          "X-CSRFToken": await getCsrfToken()
+        },
+        body: JSON.stringify({
+          offering_id: offeringId,
+          name: this.state.assignmentText
+        })
+      }
+    );
+    const result = await response.json();
+    this.fetchInitialData();
+  };
+
+  handleAssignmentTextChange = (e) => {
+    this.setState({ assignmentText: e.target.value });
+    e.preventDefault();
+  };
+
   render() {
     const { activeIndex } = this.state;
+    if (!this.state.loaded) return <h1>loadi</h1>;
     return (
       <div style={{ padding: "10px" }}>
         {this.state.data.map((data, idx) => (
@@ -65,12 +94,18 @@ export default class Assignment extends Component {
                 onClick={this.handleClick}
               >
                 <Icon name="dropdown" />
-                {data.course}
+                {data.course + " Section: " + data.section}
               </Accordion.Title>
               <Accordion.Content active={activeIndex === idx}>
-                {this.getAssignments(data.assignments)}
+                {this.getAssignments(data.assignments, data.role)}
                 <br />
               </Accordion.Content>
+              <AssignmentInput
+                role={data.role}
+                handleAssignmentTextChange={this.handleAssignmentTextChange}
+                handleAddAssignment={this.handleAddAssignment}
+                offeringId={data.offering_id}
+              />
             </Accordion>
           </Segment>
         ))}
@@ -78,3 +113,24 @@ export default class Assignment extends Component {
     );
   }
 }
+
+const AssignmentInput = (props) => {
+  if (!props.role.is_student) {
+    return (
+      <div>
+        <Input
+          placeholder="Add New assignment.."
+          onChange={props.handleAssignmentTextChange}
+        />
+        <Button
+          primary
+          style={{ float: "right" }}
+          onClick={() => props.handleAddAssignment(props.offeringId)}
+        >
+          Add Assignment
+        </Button>
+      </div>
+    );
+  }
+  return null;
+};

@@ -12,4 +12,6 @@ urlpatterns = [
     path('post/create/', views.create_post),
     path('comment/add/', views.add_comment),
     path('csrf-token/', views.csrf_token),
+    path('status/', views.get_status),
+    path('class/', views.get_class),
 ]

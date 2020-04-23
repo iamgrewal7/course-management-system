@@ -5,12 +5,27 @@ import CourseInfo from "./CourseInfo";
 import Profile from "./Profile";
 import Assignment from "./Assignment";
 import Forum from "./Forum";
+import Class from "./Class";
+import { getStatus } from "../utils/status";
 
 export default class Header extends Component {
+  state = {
+    isFaculty: false,
+    loaded: false
+  };
+
   handleChangePassword = () =>
     (window.location.href = "http://localhost:8000/change-password/");
 
   handleLogout = () => (window.location.href = "http://localhost:8000/logout/");
+
+  componentDidMount() {
+    this.isFaculty();
+  }
+
+  isFaculty = async () => {
+    this.setState({ isFaculty: await getStatus(), loaded: true });
+  };
 
   render() {
     return (
@@ -28,6 +43,11 @@ export default class Header extends Component {
           <Link className="item" to="/forum">
             Forum
           </Link>
+          {this.state.loaded & this.state.isFaculty ? (
+            <Link className="item" to="/class">
+              Class
+            </Link>
+          ) : null}
           <div className="right menu">
             <a className="ui item" onClick={this.handleLogout}>
               Logout
@@ -46,6 +66,9 @@ export default class Header extends Component {
           </Route>
           <Route path="/forum">
             <Forum />
+          </Route>
+          <Route path="/class">
+            <Class />
           </Route>
           <Route path="/">
             <Profile />
