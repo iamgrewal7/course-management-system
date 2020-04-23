@@ -34,7 +34,7 @@ class Command(BaseCommand):
                         last_name=row[0].split()[1],
                         email=row[1],
                         username=row[1],
-                        password=row[2],
+                        password=row[8],
                     )
                 print("User saved/created")
 
@@ -67,6 +67,10 @@ class Command(BaseCommand):
                     number=int(float(row[14])),
                 )
                 section.limit = row[15]
+                section.save()
+                offering = Offering.objects.get(
+                    section=section
+                )
                 print("Section1 saved/created")
 
                 # HW1
@@ -75,12 +79,17 @@ class Command(BaseCommand):
                     name=row[17]
                 )
 
+                offering.assignment.add(assignment)
+                offering.save()
+
                 # HW1 Grade
                 grade, _ = Grade.objects.get_or_create(
                     assignment=assignment,
                     student=student,
                     grade=row[18]
                 )
+
+
 
                 # EXAM 1
                 if row[19]:
@@ -89,6 +98,9 @@ class Command(BaseCommand):
                         name=row[20]
                     )
 
+                    offering.assignment.add(assignment)
+                    offering.save()
+
                     # Exam 1 grade
                     grade, _ = Grade.objects.get_or_create(
                         assignment=assignment,
@@ -96,13 +108,11 @@ class Command(BaseCommand):
                         grade=row[21]
                     )
 
-                offering = Offering.objects.get(
-                    section=section
-                )
-                offering.assignment.add(assignment)
+
 
                 enrollment, _ = Enrollments.objects.get_or_create(offering=offering)
                 enrollment.students.add(student)
+                enrollment.save()
 
                 #############################################################################
 
@@ -118,13 +128,19 @@ class Command(BaseCommand):
                     number=int(float(row[25])),
                 )
                 section.limit = row[26]
+                section.save()
                 print("Section1 saved/created")
+                offering = Offering.objects.get(
+                    section=section
+                )
 
                 # HW1
                 assignment, _ = Assignment.objects.get_or_create(
                     number=int(float(row[27])),
                     name=row[28]
                 )
+                offering.assignment.add(assignment)
+                offering.save()
 
                 # HW1 Grade
                 grade, _ = Grade.objects.get_or_create(
@@ -139,6 +155,8 @@ class Command(BaseCommand):
                         number=int(float(row[30])),
                         name=row[31]
                     )
+                    offering.assignment.add(assignment)
+                    offering.save()
 
                     # Exam 1 grade
                     grade, _ = Grade.objects.get_or_create(
@@ -147,12 +165,10 @@ class Command(BaseCommand):
                         grade=row[32]
                     )
 
-                offering = Offering.objects.get(
-                    section=section
-                )
-                offering.assignment.add(assignment)
+                
                 enrollment, _ = Enrollments.objects.get_or_create(offering=offering)
                 enrollment.students.add(student)
+                enrollment.save()
                 #############################################################################
 
                 #############################################################################
@@ -167,13 +183,20 @@ class Command(BaseCommand):
                     number=int(float(row[36])),
                 )
                 section.limit = row[37]
+                section.save()
                 print("Section1 saved/created")
+                offering = Offering.objects.get(
+                    section=section
+                )
+
 
                 # HW1
                 assignment, _ = Assignment.objects.get_or_create(
                     number=int(float(row[38])),
                     name=row[39]
                 )
+                offering.assignment.add(assignment)
+                offering.save()
 
                 # HW1 Grade
                 grade, _ = Grade.objects.get_or_create(
@@ -188,6 +211,8 @@ class Command(BaseCommand):
                         number=int(float(row[41])),
                         name=row[42]
                     )
+                    offering.assignment.add(assignment)
+                    offering.save()
 
                     # Exam 1 grade
                     grade, _ = Grade.objects.get_or_create(
@@ -196,11 +221,10 @@ class Command(BaseCommand):
                         grade=row[43]
                     )
 
-                offering = Offering.objects.get(
-                    section=section
-                )
-                offering.assignment.add(assignment)
+                
+                
                 enrollment, _ = Enrollments.objects.get_or_create(offering=offering)
                 enrollment.students.add(student)
+                enrollment.save()
                 #############################################################################
 
